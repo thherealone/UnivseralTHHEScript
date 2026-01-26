@@ -5,10 +5,10 @@ local IsMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, game:Get
 local DeviceType = IsMobile and "Mobile" or "PC"
 
 local Window = Rayfield:CreateWindow({
-    Name = "THHE Hub | v2.1",
+    Name = "THHE Hub | Final v3",
     Icon = 0,
-    LoadingTitle = "Initializing Stealth Hub",
-    LoadingSubtitle = "Scanning for Anti-Cheat...",
+    LoadingTitle = "Mobile & PC System",
+    LoadingSubtitle = "by THHE",
     Theme = "Default",
     ConfigurationSaving = { Enabled = true, FolderName = "THHE_Configs", FileName = "Config" },
     ToggleUIKeybind = Enum.KeyCode.RightShift,
@@ -20,26 +20,43 @@ local lplr = game:GetService("Players").LocalPlayer
 local camera = game:GetService("Workspace").CurrentCamera
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local VirtualUser = game:GetService("VirtualUser") -- Für Anti-AFK
+local VirtualUser = game:GetService("VirtualUser")
 
 -- SETTINGS
 local Settings = {
     ESP_Box = false,
     ESP_Skeleton = false,
     ESP_TeamCheck = false,
-    ESP_Thickness = 2,
     ESP_Color = Color3.fromRGB(255, 255, 255),
     Aimbot_Enabled = false,
+    Aimbot_MobileLock = false, -- Neuer Toggle für Mobile Button
     Aimbot_TeamCheck = false,
     Aimbot_Color = Color3.fromRGB(255, 0, 0),
     FOV_Size = 100,
+    AimSmooth = 0.1,
     AimPart = "Head",
     Fly_Enabled = false,
     Fly_Speed = 50,
-    AntiAFK = true -- Standardmäßig an
+    AntiAFK = true
 }
 
--- ANTI-AFK LOGIC
+-- MOBILE AIMBOT BUTTON (Nur wenn Mobile)
+if IsMobile then
+    local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+    local ToggleButton = Instance.new("TextButton", ScreenGui)
+    ToggleButton.Size = UDim2.new(0, 100, 0, 50)
+    ToggleButton.Position = UDim2.new(0, 10, 0.5, 0)
+    ToggleButton.Text = "Aim: OFF"
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        Settings.Aimbot_MobileLock = not Settings.Aimbot_MobileLock
+        ToggleButton.Text = Settings.Aimbot_MobileLock and "Aim: ON" or "Aim: OFF"
+        ToggleButton.BackgroundColor3 = Settings.Aimbot_MobileLock and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    end)
+end
+
+-- ANTI-AFK
 lplr.Idled:Connect(function()
     if Settings.AntiAFK then
         VirtualUser:Button2Down(Vector2.new(0,0), camera.CFrame)
@@ -53,11 +70,10 @@ local CharTab = Window:CreateTab("Character", 4483362458)
 local VisTab = Window:CreateTab("Visual", 4483362458)
 local AimTab = Window:CreateTab("Aimbot", 4483362458)
 
---- CHARACTER ---
+--- CHARACTER (FLY IMPROVED) ---
 CharTab:CreateToggle({
     Name = "Infinity Jump",
     CurrentValue = false,
-    Flag = "InfJump",
     Callback = function(v) _G.InfJump = v end
 })
 
@@ -69,41 +85,22 @@ CharTab:CreateSlider({
     Callback = function(v) if lplr.Character then lplr.Character.Humanoid.WalkSpeed = v end end
 })
 
-CharTab:CreateSlider({
-    Name = "JumpHeight",
-    Range = {50, 250},
-    Increment = 1,
-    CurrentValue = 50,
-    Callback = function(v) 
-        if lplr.Character then 
-            lplr.Character.Humanoid.UseJumpPower = false
-            lplr.Character.Humanoid.JumpHeight = v 
-        end 
-    end
-})
-
-CharTab:CreateSection("Fly & Utility")
+CharTab:CreateSection("Improved Fly")
 CharTab:CreateToggle({
-    Name = "Fly Mode",
+    Name = "Enable Fly",
     CurrentValue = false,
     Callback = function(v) Settings.Fly_Enabled = v end
 })
 
 CharTab:CreateSlider({
     Name = "Fly Speed",
-    Range = {10, 300},
+    Range = {10, 500},
     Increment = 5,
     CurrentValue = 50,
     Callback = function(v) Settings.Fly_Speed = v end
 })
 
-CharTab:CreateToggle({
-    Name = "Anti-AFK",
-    CurrentValue = true,
-    Callback = function(v) Settings.AntiAFK = v end
-})
-
---- VISUALS (ESP) ---
+--- VISUALS ---
 VisTab:CreateToggle({
     Name = "Box ESP",
     CurrentValue = false,
@@ -128,8 +125,8 @@ VisTab:CreateColorPicker({
     Callback = function(v) Settings.ESP_Color = v end
 })
 
---- AIMBOT ---
-AimTab:CreateParagraph({Title = "Stealth Note", Content = "Smoothing is randomized to bypass basic behavioral checks."})
+--- AIMBOT (PREDICTIVE & MOBILE) ---
+AimTab:CreateParagraph({Title = "Warning", Content = "⚠️ This aimbot is new so be carefull!"})
 
 AimTab:CreateToggle({
     Name = "Aimbot Enabled",
@@ -144,19 +141,32 @@ AimTab:CreateToggle({
 })
 
 AimTab:CreateSlider({
+    Name = "Smoothness",
+    Range = {1, 10},
+    Increment = 1,
+    CurrentValue = 2,
+    Callback = function(v) Settings.AimSmooth = (11 - v) / 10 end
+})
+
+AimTab:CreateSlider({
     Name = "FOV Size",
-    Range = {50, 500},
+    Range = {50, 600},
     Increment = 10,
     CurrentValue = 100,
     Callback = function(v) Settings.FOV_Size = v end
 })
 
--- DRAWING TOOLS
+AimTab:CreateColorPicker({
+    Name = "FOV Circle Color",
+    Color = Settings.Aimbot_Color,
+    Callback = function(v) Settings.Aimbot_Color = v end
+})
+
+-- DRAWING UTILS
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1
 FOVCircle.NumSides = 60
 FOVCircle.Filled = false
-
 local PlayerDrawings = {}
 
 local function GetClosest()
@@ -174,69 +184,68 @@ local function GetClosest()
     return target
 end
 
--- RENDER ENGINE
+-- MAIN RENDER LOOP
 RunService.RenderStepped:Connect(function()
+    -- FOV Update
     FOVCircle.Visible = Settings.Aimbot_Enabled
     FOVCircle.Radius = Settings.FOV_Size
     FOVCircle.Position = UIS:GetMouseLocation()
-    FOVCircle.Color = Settings.ESP_Color
+    FOVCircle.Color = Settings.Aimbot_Color
 
-    -- Fly (Safe Velocity)
+    -- Improved Fly Engine (Velocity Based)
     if Settings.Fly_Enabled and lplr.Character and lplr.Character:FindFirstChild("HumanoidRootPart") then
-        lplr.Character.HumanoidRootPart.Velocity = (lplr.Character.Humanoid.MoveDirection * Settings.Fly_Speed) + Vector3.new(0, 2, 0)
+        local hrp = lplr.Character.HumanoidRootPart
+        local hum = lplr.Character.Humanoid
+        hrp.Velocity = (hum.MoveDirection * Settings.Fly_Speed) + Vector3.new(0, 1.2, 0)
     end
 
-    -- Persistent ESP Render
+    -- ESP Loop
     for _, p in pairs(game:GetService("Players"):GetPlayers()) do
         if p ~= lplr then
-            if not PlayerDrawings[p] then
-                PlayerDrawings[p] = { Box = Drawing.new("Square"), Skel = Drawing.new("Line") }
-            end
+            if not PlayerDrawings[p] then PlayerDrawings[p] = { Box = Drawing.new("Square"), Skel = Drawing.new("Line") } end
             local draw = PlayerDrawings[p]
-            local char = p.Character
-            if char and char:FindFirstChild("HumanoidRootPart") and char.Humanoid.Health > 0 then
-                local hrp = char.HumanoidRootPart
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
+                local hrp = p.Character.HumanoidRootPart
                 local pos, vis = camera:WorldToViewportPoint(hrp.Position)
                 local isTeammate = Settings.ESP_TeamCheck and p.Team == lplr.Team
-
                 if vis and not isTeammate then
                     if Settings.ESP_Box then
                         local s = 2500 / pos.Z
                         draw.Box.Size = Vector2.new(s, s * 1.5)
                         draw.Box.Position = Vector2.new(pos.X - s/2, pos.Y - (s*1.5)/2)
-                        draw.Box.Thickness = Settings.ESP_Thickness
                         draw.Box.Color = Settings.ESP_Color
                         draw.Box.Visible = true
+                        draw.Box.Thickness = 2
                     else draw.Box.Visible = false end
-
-                    if Settings.ESP_Skeleton and char:FindFirstChild("Head") then
-                        local headPos = camera:WorldToViewportPoint(char.Head.Position)
-                        draw.Skel.From = Vector2.new(headPos.X, headPos.Y)
+                    if Settings.ESP_Skeleton and p.Character:FindFirstChild("Head") then
+                        local hPos = camera:WorldToViewportPoint(p.Character.Head.Position)
+                        draw.Skel.From = Vector2.new(hPos.X, hPos.Y)
                         draw.Skel.To = Vector2.new(pos.X, pos.Y)
-                        draw.Skel.Thickness = Settings.ESP_Thickness
                         draw.Skel.Color = Settings.ESP_Color
                         draw.Skel.Visible = true
+                        draw.Skel.Thickness = 2
                     else draw.Skel.Visible = false end
-                else
-                    draw.Box.Visible = false; draw.Skel.Visible = false
-                end
-            else
-                draw.Box.Visible = false; draw.Skel.Visible = false
-            end
+                else draw.Box.Visible = false; draw.Skel.Visible = false end
+            else draw.Box.Visible = false; draw.Skel.Visible = false end
         end
     end
 
-    -- Aimbot Logic (Humanized)
-    if Settings.Aimbot_Enabled and (UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) or IsMobile) then
-        local t = GetClosest()
-        if t and t.Character and t.Character:FindFirstChild(Settings.AimPart) then
-            local randomSmooth = 0.1 + (math.random(-2, 2) / 100) -- Zufällige Variation für Anti-Cheat
-            if IsMobile then
-                camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, t.Character[Settings.AimPart].Position), randomSmooth)
-            else
-                local tPos = camera:WorldToViewportPoint(t.Character[Settings.AimPart].Position)
-                local mPos = UIS:GetMouseLocation()
-                mousemoverel((tPos.X - mPos.X) * randomSmooth * 2, (tPos.Y - mPos.Y) * randomSmooth * 2)
+    -- Aimbot Execution (Mobile Button & Predictive Aim)
+    if Settings.Aimbot_Enabled then
+        if (IsMobile and Settings.Aimbot_MobileLock) or (not IsMobile and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)) then
+            local t = GetClosest()
+            if t and t.Character and t.Character:FindFirstChild(Settings.AimPart) then
+                -- Prediction: minimal vor den Charakter zielen
+                local targetPart = t.Character[Settings.AimPart]
+                local prediction = targetPart.Position + (targetPart.Velocity * 0.1)
+                
+                if IsMobile then
+                    camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, prediction), Settings.AimSmooth)
+                else
+                    local tPos = camera:WorldToViewportPoint(prediction)
+                    local mPos = UIS:GetMouseLocation()
+                    mousemoverel((tPos.X - mPos.X) * Settings.AimSmooth, (tPos.Y - mPos.Y) * Settings.AimSmooth)
+                end
             end
         end
     end
@@ -248,4 +257,4 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
-Rayfield:Notify({Title = "Stealth Hub Active", Content = "Anti-AFK and Random-Smooth enabled.", Duration = 4})
+Rayfield:Notify({Title = "System Ready", Content = "Mobile Button & Fly Improved!", Duration = 3})
