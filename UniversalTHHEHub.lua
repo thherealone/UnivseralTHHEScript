@@ -12,7 +12,7 @@ local Window = Rayfield:CreateWindow({
 	ShowText = "Rayfield", -- for mobile users to unhide rayfield, change if you'd like
 	Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
-	ToggleUIKeybind = "Enums.KeyCode.Right_Shift", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+	ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
 
 	DisableRayfieldPrompts = false,
 	DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
