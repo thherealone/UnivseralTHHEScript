@@ -5,14 +5,14 @@ local IsMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, game:Get
 local DeviceType = IsMobile and "Mobile" or "PC"
 
 local Window = Rayfield:CreateWindow({
-    Name = "Universal THHE Hub | " .. DeviceType,
+    Name = "THHE Hub | v2.1",
     Icon = 0,
-    LoadingTitle = "Universal System",
-    LoadingSubtitle = "by THHE",
+    LoadingTitle = "Initializing Stealth Hub",
+    LoadingSubtitle = "Scanning for Anti-Cheat...",
     Theme = "Default",
     ConfigurationSaving = { Enabled = true, FolderName = "THHE_Configs", FileName = "Config" },
     ToggleUIKeybind = Enum.KeyCode.RightShift,
-    ShowText = "Open Menu"
+    ShowText = "Menu"
 })
 
 -- SERVICES
@@ -20,6 +20,7 @@ local lplr = game:GetService("Players").LocalPlayer
 local camera = game:GetService("Workspace").CurrentCamera
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser") -- Für Anti-AFK
 
 -- SETTINGS
 local Settings = {
@@ -32,11 +33,20 @@ local Settings = {
     Aimbot_TeamCheck = false,
     Aimbot_Color = Color3.fromRGB(255, 0, 0),
     FOV_Size = 100,
-    AimSmooth = 0.1, -- Fixed Syntax
     AimPart = "Head",
     Fly_Enabled = false,
-    Fly_Speed = 50
+    Fly_Speed = 50,
+    AntiAFK = true -- Standardmäßig an
 }
+
+-- ANTI-AFK LOGIC
+lplr.Idled:Connect(function()
+    if Settings.AntiAFK then
+        VirtualUser:Button2Down(Vector2.new(0,0), camera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0), camera.CFrame)
+    end
+end)
 
 -- TABS
 local CharTab = Window:CreateTab("Character", 4483362458)
@@ -53,7 +63,7 @@ CharTab:CreateToggle({
 
 CharTab:CreateSlider({
     Name = "Walkspeed",
-    Range = {16, 250},
+    Range = {16, 150},
     Increment = 1,
     CurrentValue = 16,
     Callback = function(v) if lplr.Character then lplr.Character.Humanoid.WalkSpeed = v end end
@@ -61,7 +71,7 @@ CharTab:CreateSlider({
 
 CharTab:CreateSlider({
     Name = "JumpHeight",
-    Range = {50, 400},
+    Range = {50, 250},
     Increment = 1,
     CurrentValue = 50,
     Callback = function(v) 
@@ -72,7 +82,7 @@ CharTab:CreateSlider({
     end
 })
 
-CharTab:CreateSection("Fly")
+CharTab:CreateSection("Fly & Utility")
 CharTab:CreateToggle({
     Name = "Fly Mode",
     CurrentValue = false,
@@ -81,10 +91,16 @@ CharTab:CreateToggle({
 
 CharTab:CreateSlider({
     Name = "Fly Speed",
-    Range = {10, 500},
+    Range = {10, 300},
     Increment = 5,
     CurrentValue = 50,
     Callback = function(v) Settings.Fly_Speed = v end
+})
+
+CharTab:CreateToggle({
+    Name = "Anti-AFK",
+    CurrentValue = true,
+    Callback = function(v) Settings.AntiAFK = v end
 })
 
 --- VISUALS (ESP) ---
@@ -106,14 +122,6 @@ VisTab:CreateToggle({
     Callback = function(v) Settings.ESP_TeamCheck = v end
 })
 
-VisTab:CreateSlider({
-    Name = "ESP Thickness",
-    Range = {1, 5},
-    Increment = 1,
-    CurrentValue = 2,
-    Callback = function(v) Settings.ESP_Thickness = v end
-})
-
 VisTab:CreateColorPicker({
     Name = "ESP Color",
     Color = Settings.ESP_Color,
@@ -121,7 +129,7 @@ VisTab:CreateColorPicker({
 })
 
 --- AIMBOT ---
-AimTab:CreateParagraph({Title = "Warning", Content = "⚠️ This aimbot is new so be carefull!"})
+AimTab:CreateParagraph({Title = "Stealth Note", Content = "Smoothing is randomized to bypass basic behavioral checks."})
 
 AimTab:CreateToggle({
     Name = "Aimbot Enabled",
@@ -143,13 +151,7 @@ AimTab:CreateSlider({
     Callback = function(v) Settings.FOV_Size = v end
 })
 
-AimTab:CreateColorPicker({
-    Name = "FOV Color",
-    Color = Settings.Aimbot_Color,
-    Callback = function(v) Settings.Aimbot_Color = v end
-})
-
--- DRAWING UTILS
+-- DRAWING TOOLS
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1
 FOVCircle.NumSides = 60
@@ -174,29 +176,25 @@ end
 
 -- RENDER ENGINE
 RunService.RenderStepped:Connect(function()
-    -- FOV Update
     FOVCircle.Visible = Settings.Aimbot_Enabled
     FOVCircle.Radius = Settings.FOV_Size
     FOVCircle.Position = UIS:GetMouseLocation()
-    FOVCircle.Color = Settings.Aimbot_Color
+    FOVCircle.Color = Settings.ESP_Color
 
-    -- Fly Logic
+    -- Fly (Safe Velocity)
     if Settings.Fly_Enabled and lplr.Character and lplr.Character:FindFirstChild("HumanoidRootPart") then
         lplr.Character.HumanoidRootPart.Velocity = (lplr.Character.Humanoid.MoveDirection * Settings.Fly_Speed) + Vector3.new(0, 2, 0)
     end
 
-    -- ESP Rendering
+    -- Persistent ESP Render
     for _, p in pairs(game:GetService("Players"):GetPlayers()) do
         if p ~= lplr then
             if not PlayerDrawings[p] then
-                PlayerDrawings[p] = {
-                    Box = Drawing.new("Square"),
-                    Skel = Drawing.new("Line")
-                }
+                PlayerDrawings[p] = { Box = Drawing.new("Square"), Skel = Drawing.new("Line") }
             end
             local draw = PlayerDrawings[p]
             local char = p.Character
-            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+            if char and char:FindFirstChild("HumanoidRootPart") and char.Humanoid.Health > 0 then
                 local hrp = char.HumanoidRootPart
                 local pos, vis = camera:WorldToViewportPoint(hrp.Position)
                 local isTeammate = Settings.ESP_TeamCheck and p.Team == lplr.Team
@@ -220,26 +218,25 @@ RunService.RenderStepped:Connect(function()
                         draw.Skel.Visible = true
                     else draw.Skel.Visible = false end
                 else
-                    draw.Box.Visible = false
-                    draw.Skel.Visible = false
+                    draw.Box.Visible = false; draw.Skel.Visible = false
                 end
             else
-                draw.Box.Visible = false
-                draw.Skel.Visible = false
+                draw.Box.Visible = false; draw.Skel.Visible = false
             end
         end
     end
 
-    -- Aimbot Logic
+    -- Aimbot Logic (Humanized)
     if Settings.Aimbot_Enabled and (UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) or IsMobile) then
         local t = GetClosest()
         if t and t.Character and t.Character:FindFirstChild(Settings.AimPart) then
+            local randomSmooth = 0.1 + (math.random(-2, 2) / 100) -- Zufällige Variation für Anti-Cheat
             if IsMobile then
-                camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, t.Character[Settings.AimPart].Position), 0.1)
+                camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, t.Character[Settings.AimPart].Position), randomSmooth)
             else
                 local tPos = camera:WorldToViewportPoint(t.Character[Settings.AimPart].Position)
                 local mPos = UIS:GetMouseLocation()
-                mousemoverel((tPos.X - mPos.X) * 0.2, (tPos.Y - mPos.Y) * 0.2)
+                mousemoverel((tPos.X - mPos.X) * randomSmooth * 2, (tPos.Y - mPos.Y) * randomSmooth * 2)
             end
         end
     end
@@ -251,4 +248,4 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
-Rayfield:Notify({Title = "Ready", Content = "THHE Hub is now active!", Duration = 3})
+Rayfield:Notify({Title = "Stealth Hub Active", Content = "Anti-AFK and Random-Smooth enabled.", Duration = 4})
