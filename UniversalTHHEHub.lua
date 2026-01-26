@@ -41,20 +41,53 @@ local Window = Rayfield:CreateWindow({
 	}
 })
 
+
 local CharacterTab = Window:CreateTab("Character", 58722388)
 local VisualTab = Window:CreateTab("Visual", 5631279864)
 local AimbotTab = Window:CreateTab("Aimbot", 3340612702)
 
-local Button = CharacterTab:CreateButton({
-	Name = "Fly",
-	Callback = function()
-	
-	end,
-})
+
 
 Rayfield:Notify({
 	Title = "Hey!",
 	Content = "This script is new so there are bugs!",
 	Duration = 7.5,
 	Image = 4483362458,
+})
+
+local Toggle = CharacterTab:CreateToggle({
+	Name = "Infinity Jump",
+	CurrentValue = false,
+	Flag = "Toggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+	Callback = function(FlyEnabled)
+			game:GetService("UserInputService").JumpRequest:connect(function()
+				if FlyEnabled then
+					game:GetService"Players".LocalPlayer.Character.Humanoid.Jump = true
+				end
+			end)
+		end,
+})
+
+local WalkspeedSlider = CharacterTab:CreateSlider({
+	Name = "Walkspeed",
+	Range = {0, 150},
+	Increment = 1,
+	Suffix = "Walkspeed",
+	CurrentValue = 14,
+	Flag = "Slider1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+	Callback = function(Walkspeed)
+	game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Walkspeed
+	end,
+})
+
+local JumpSlider = CharacterTab:CreateSlider({
+	Name = "Jumppower",
+	Range = {0, 150},
+	Increment = 1,
+	Suffix = "Jumppower",
+	CurrentValue = 10,
+	Flag = "Slider1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+	Callback = function(Jump)
+		game.Players.Character.Humanoid.JumpPower = Jump
+	end,
 })
