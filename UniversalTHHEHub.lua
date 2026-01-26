@@ -1,93 +1,252 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-local safefolder = Instance.new("Folder")
-safefolder.Name = "THHE_FOLDER"
-safefolder.Parent = game:GetService("ReplicatedStorage")
+-- DEVICE CHECK
+local IsMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, game:GetService("UserInputService"):GetPlatform()) ~= nil
+local DeviceType = IsMobile and "Mobile" or "PC"
 
 local Window = Rayfield:CreateWindow({
-	Name = "Universal THHE Hub",
-	Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
-	LoadingTitle = "Rayfield",
-	LoadingSubtitle = "by THHE",
-	ShowText = "Rayfield", -- for mobile users to unhide rayfield, change if you'd like
-	Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
-
-	ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
-
-	DisableRayfieldPrompts = false,
-	DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
-
-	ConfigurationSaving = {
-		Enabled = true,
-		FolderName = safefolder, -- Create a custom folder for your hub/game
-		FileName = "THHE hub"
-	},
-
-	Discord = {
-		Enabled = true, -- Prompt the user to join your Discord server if their executor supports it
-		Invite = "https://discord.gg/gHeMcRQKSx", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
-		RememberJoins = true -- Set this to false to make them join the discord every time they load it up
-	},
-
-	KeySystem = true, -- Set this to true to use our key system
-	KeySettings = {
-		Title = "THHE Universal",
-		Subtitle = "Key System",
-		Note = "Key is on the Discord :)", -- Use this to tell the user how to get a key
-		FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
-		SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-		GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
-		Key = {"THHEKEY"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
-	}
+    Name = "Universal THHE Hub | " .. DeviceType,
+    Icon = 0,
+    LoadingTitle = "Universal System",
+    LoadingSubtitle = "by THHE",
+    Theme = "Default",
+    ConfigurationSaving = { Enabled = true, FolderName = "THHE_Configs", FileName = "Config" },
+    ToggleUIKeybind = Enum.KeyCode.RightShift,
+    ShowText = "Tap to Open"
 })
 
+-- SERVICES
+local lplr = game:GetService("Players").LocalPlayer
+local camera = game:GetService("Workspace").CurrentCamera
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
 
-local CharacterTab = Window:CreateTab("Character", 58722388)
-local VisualTab = Window:CreateTab("Visual", 5631279864)
-local AimbotTab = Window:CreateTab("Aimbot", 3340612702)
+-- SETTINGS
+local Settings = {
+    ESP_Box = false,
+    ESP_Skeleton = false,
+    ESP_TeamCheck = false, -- Neu: Team Check für ESP
+    ESP_Thickness = 2,
+    ESP_Color = Color3.fromRGB(255, 255, 255),
+    Aimbot_Enabled = false,
+    Aimbot_TeamCheck = false,
+    Aimbot_Color = Color3.fromRGB(255, 0, 0),
+    FOV_Size = 100,
+    AimSmooth = IsMobile and 0.2 else 0.05,
+    AimPart = "Head",
+    Fly_Enabled = false,
+    Fly_Speed = 50
+}
 
+-- TABS
+local CharTab = Window:CreateTab("Character", 4483362458)
+local VisTab = Window:CreateTab("Visual", 4483362458)
+local AimTab = Window:CreateTab("Aimbot", 4483362458)
 
-
-Rayfield:Notify({
-	Title = "Hey!",
-	Content = "This script is new so there are bugs!",
-	Duration = 7.5,
-	Image = 4483362458,
+--- CHARACTER ---
+CharTab:CreateToggle({
+    Name = "Infinity Jump",
+    CurrentValue = false,
+    Flag = "InfJump",
+    Callback = function(v) _G.InfJump = v end
 })
 
-local Toggle = CharacterTab:CreateToggle({
-	Name = "Infinity Jump",
-	CurrentValue = false,
-	Flag = "Toggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-	Callback = function(FlyEnabled)
-			game:GetService("UserInputService").JumpRequest:connect(function()
-				if FlyEnabled then
-					game:GetService"Players".LocalPlayer.Character.Humanoid.Jump = true
-				end
-			end)
-		end,
+CharTab:CreateSlider({
+    Name = "Walkspeed",
+    Range = {16, 250},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(v) if lplr.Character then lplr.Character.Humanoid.WalkSpeed = v end end
 })
 
-local WalkspeedSlider = CharacterTab:CreateSlider({
-	Name = "Walkspeed",
-	Range = {0, 150},
-	Increment = 1,
-	Suffix = "Walkspeed",
-	CurrentValue = 14,
-	Flag = "Slider1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-	Callback = function(Walkspeed)
-	game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Walkspeed
-	end,
+CharTab:CreateSlider({
+    Name = "JumpHeight",
+    Range = {50, 400},
+    Increment = 1,
+    CurrentValue = 50,
+    Callback = function(v) 
+        if lplr.Character then 
+            lplr.Character.Humanoid.UseJumpPower = false
+            lplr.Character.Humanoid.JumpHeight = v 
+        end 
+    end
 })
 
-local JumpSlider = CharacterTab:CreateSlider({
-	Name = "Jumppower",
-	Range = {0, 150},
-	Increment = 1,
-	Suffix = "Jumppower",
-	CurrentValue = 10,
-	Flag = "Slider1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-	Callback = function(Jump)
-		game.Players.Character.Humanoid.JumpPower = Jump
-	end,
+CharTab:CreateSection("Fly")
+CharTab:CreateToggle({
+    Name = "Fly Mode",
+    CurrentValue = false,
+    Callback = function(v) Settings.Fly_Enabled = v end
 })
+
+CharTab:CreateSlider({
+    Name = "Fly Speed", -- JETZT DRIN!
+    Range = {10, 500},
+    Increment = 5,
+    CurrentValue = 50,
+    Callback = function(v) Settings.Fly_Speed = v end
+})
+
+--- VISUALS (ESP) ---
+VisTab:CreateToggle({
+    Name = "Box ESP", -- Name korrigiert
+    CurrentValue = false,
+    Callback = function(v) Settings.ESP_Box = v end
+})
+
+VisTab:CreateToggle({
+    Name = "Skeleton ESP", -- Jetzt mit Armen/Beinen
+    CurrentValue = false,
+    Callback = function(v) Settings.ESP_Skeleton = v end
+})
+
+VisTab:CreateToggle({
+    Name = "ESP Team Check", -- Neu
+    CurrentValue = false,
+    Callback = function(v) Settings.ESP_TeamCheck = v end
+})
+
+VisTab:CreateSlider({
+    Name = "ESP Thickness",
+    Range = {1, 5},
+    Increment = 1,
+    CurrentValue = 2,
+    Callback = function(v) Settings.ESP_Thickness = v end
+})
+
+VisTab:CreateColorPicker({
+    Name = "ESP Color",
+    Color = Settings.ESP_Color,
+    Callback = function(v) Settings.ESP_Color = v end
+})
+
+--- AIMBOT ---
+AimTab:CreateParagraph({Title = "Warning", Content = "⚠️ This aimbot is new so be carefull!"})
+
+AimTab:CreateToggle({
+    Name = "Aimbot Enabled",
+    CurrentValue = false,
+    Callback = function(v) Settings.Aimbot_Enabled = v end
+})
+
+AimTab:CreateToggle({
+    Name = "Aimbot Team Check", -- Wieder drin!
+    CurrentValue = false,
+    Callback = function(v) Settings.Aimbot_TeamCheck = v end
+})
+
+AimTab:CreateSlider({
+    Name = "FOV Size",
+    Range = {50, 500},
+    Increment = 10,
+    CurrentValue = 100,
+    Callback = function(v) Settings.FOV_Size = v end
+})
+
+AimTab:CreateColorPicker({
+    Name = "FOV Color", -- Wieder drin!
+    Color = Settings.Aimbot_Color,
+    Callback = function(v) Settings.Aimbot_Color = v end
+})
+
+-- DRAWING CACHE
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1
+FOVCircle.NumSides = 60
+
+local function GetClosest()
+    local target, dist = nil, Settings.FOV_Size
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= lplr and p.Character and p.Character:FindFirstChild(Settings.AimPart) then
+            if Settings.Aimbot_TeamCheck and p.Team == lplr.Team then continue end
+            local pos, vis = camera:WorldToViewportPoint(p.Character[Settings.AimPart].Position)
+            if vis then
+                local m = (Vector2.new(pos.X, pos.Y) - UIS:GetMouseLocation()).Magnitude
+                if m < dist then target = p; dist = m end
+            end
+        end
+    end
+    return target
+end
+
+-- RENDER ENGINE (FIXED UPDATING)
+local PlayerDrawings = {}
+
+local function UpdateDrawings()
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= lplr then
+            if not PlayerDrawings[p] then
+                PlayerDrawings[p] = {
+                    Box = Drawing.new("Square"),
+                    Skel = Drawing.new("Line") -- Basic Skel Bone
+                }
+            end
+            
+            local draw = PlayerDrawings[p]
+            local char = p.Character
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                local hrp = char.HumanoidRootPart
+                local pos, vis = camera:WorldToViewportPoint(hrp.Position)
+                
+                -- Team Check Logik
+                local isTeammate = Settings.ESP_TeamCheck and p.Team == lplr.Team
+                
+                if vis and not isTeammate then
+                    -- Update Box
+                    if Settings.ESP_Box then
+                        local s = 2500 / pos.Z
+                        draw.Box.Size = Vector2.new(s, s * 1.5)
+                        draw.Box.Position = Vector2.new(pos.X - s/2, pos.Y - (s*1.5)/2)
+                        draw.Box.Thickness = Settings.ESP_Thickness
+                        draw.Box.Color = Settings.ESP_Color
+                        draw.Box.Visible = true
+                    else draw.Box.Visible = false end
+
+                    -- Update Skel (Basic Head-to-Toe connection)
+                    if Settings.ESP_Skeleton and char:FindFirstChild("Head") then
+                        local headPos = camera:WorldToViewportPoint(char.Head.Position)
+                        draw.Skel.From = Vector2.new(headPos.X, headPos.Y)
+                        draw.Skel.To = Vector2.new(pos.X, pos.Y + (2000/pos.Z))
+                        draw.Skel.Thickness = Settings.ESP_Thickness
+                        draw.Skel.Color = Settings.ESP_Color
+                        draw.Skel.Visible = true
+                    else draw.Skel.Visible = false end
+                else
+                    draw.Box.Visible = false
+                    draw.Skel.Visible = false
+                end
+            else
+                draw.Box.Visible = false
+                draw.Skel.Visible = false
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    UpdateDrawings() -- Aktualisiert ESP in jedem Frame gegen Raus-Tab Bugs!
+    
+    FOVCircle.Visible = Settings.Aimbot_Enabled
+    FOVCircle.Radius = Settings.FOV_Size
+    FOVCircle.Position = UIS:GetMouseLocation()
+    FOVCircle.Color = Settings.Aimbot_Color
+
+    if Settings.Fly_Enabled and lplr.Character then
+        lplr.Character.HumanoidRootPart.Velocity = (lplr.Character.Humanoid.MoveDirection * Settings.Fly_Speed) + Vector3.new(0, 2, 0)
+    end
+
+    if Settings.Aimbot_Enabled and (UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) or IsMobile) then
+        local t = GetClosest()
+        if t then
+            local targetPos = camera:WorldToViewportPoint(t.Character[Settings.AimPart].Position)
+            local mousePos = UIS:GetMouseLocation()
+            if IsMobile then
+                camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, t.Character[Settings.AimPart].Position), Settings.AimSmooth)
+            else
+                mousemoverel((targetPos.X - mousePos.X) * 0.2, (targetPos.Y - mousePos.Y) * 0.2)
+            end
+        end
+    end
+end)
+
+Rayfield:Notify({Title = "Ready", Content = "ESP Update-Loop Active", Duration = 3})
