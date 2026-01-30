@@ -1,242 +1,228 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
--- DEVICE CHECK
-local IsMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, game:GetService("UserInputService"):GetPlatform()) ~= nil
-local DeviceType = IsMobile and "Mobile" or "PC"
-
-local Window = Rayfield:CreateWindow({
-    Name = "THHE Hub | v1.0 Release",
-    Icon = 0,
-    LoadingTitle = "Loading Original Hub",
-    LoadingSubtitle = "Optimization for " .. DeviceType,
-    Theme = "Default",
-    ConfigurationSaving = { Enabled = true, FolderName = "THHE_Configs", FileName = "Config" },
-    ToggleUIKeybind = Enum.KeyCode.RightShift,
-    ShowText = "Menu"
-})
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 -- SERVICES
-local lplr = game:GetService("Players").LocalPlayer
-local camera = game:GetService("Workspace").CurrentCamera
-local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local VirtualUser = game:GetService("VirtualUser")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local lplr = Players.LocalPlayer
+local camera = workspace.CurrentCamera
 
 -- SETTINGS
-local Settings = {
-    ESP_Box = false,
-    ESP_Color = Color3.fromRGB(255, 255, 255),
-    Aimbot_Enabled = false,
-    Aimbot_MobileLock = false,
-    Aimbot_Smooth = 0.1,
-    Aimbot_FOV = 120,
-    HitboxSize = 2,
-    Fly_Enabled = false,
-    Fly_Speed = 60,
-    FlyUp = false,
-    FlyDown = false,
-    Noclip = false, -- NEU
-    AntiAFK = true
+local Options = {
+    -- Combat
+    Aimbot = false,
+    AimPart = "Head",
+    AimSmooth = 0.1,
+    AimFOV = 120,
+    ShowAimFOV = true,
+    HitboxExpander = 2,
+    -- Movement
+    Fly = false,
+    FlySpeed = 60,
+    Noclip = false,
+    WalkSpeed = 16,
+    JumpPower = 50,
+    -- Visuals (JETZT VOLLSTÄNDIG)
+    BoxESP = false,
+    Names = false,
+    Chams = false,
+    ESPColor = Color3.fromRGB(255, 255, 255),
+    -- Internal
+    SelectedPlayer = nil
 }
 
--- MOBILE OVERLAY (OPTIMIERT)
-if IsMobile then
-    local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-    
-    local function CreateMobileBtn(text, pos, color)
-        local b = Instance.new("TextButton", ScreenGui)
-        b.Size = UDim2.new(0, 90, 0, 45)
-        b.Position = pos
-        b.Text = text
-        b.BackgroundColor3 = color or Color3.fromRGB(35, 35, 35)
-        b.TextColor3 = Color3.new(1,1,1)
-        b.BorderSizePixel = 2
-        b.Draggable = true -- Wichtig für Mobile!
-        return b
-    end
-
-    local AimBtn = CreateMobileBtn("AIM: OFF", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(60, 0, 0))
-    local UpBtn = CreateMobileBtn("FLY UP", UDim2.new(0.85, 0, 0.4, 0))
-    local DownBtn = CreateMobileBtn("FLY DOWN", UDim2.new(0.85, 0, 0.5, 0))
-
-    AimBtn.MouseButton1Click:Connect(function()
-        Settings.Aimbot_MobileLock = not Settings.Aimbot_MobileLock
-        AimBtn.Text = Settings.Aimbot_MobileLock and "AIM: ON" or "AIM: OFF"
-        AimBtn.BackgroundColor3 = Settings.Aimbot_MobileLock and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(60, 0, 0)
-    end)
-    
-    UpBtn.MouseButton1Down:Connect(function() Settings.FlyUp = true end)
-    UpBtn.MouseButton1Up:Connect(function() Settings.FlyUp = false end)
-    DownBtn.MouseButton1Down:Connect(function() Settings.FlyDown = true end)
-    DownBtn.MouseButton1Up:Connect(function() Settings.FlyDown = false end)
-end
+-- WINDOW
+local Window = Fluent:CreateWindow({
+    Title = "THHE Hub",
+    SubTitle = "feel free",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(600, 480),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.RightShift
+})
 
 -- TABS
-local CombatTab = Window:CreateTab("Combat", 4483362458)
-local VisTab = Window:CreateTab("Visuals", 4483362458)
-local CharTab = Window:CreateTab("Movement", 4483362458)
+local Tabs = {
+    Aimbot = Window:AddTab({ Title = "Aimbot", Icon = "crosshair" }),
+    Teleports = Window:AddTab({ Title = "Teleports", Icon = "map-pin" }),
+    Movement = Window:AddTab({ Title = "Movement", Icon = "zap" }),
+    Visuals = Window:AddTab({ Title = "Visuals", Icon = "eye" }),
+    Misc = Window:AddTab({ Title = "Misc", Icon = "settings" })
+}
 
---- COMBAT ---
-CombatTab:CreateToggle({
-    Name = "Aimbot Enabled",
-    CurrentValue = false,
-    Callback = function(v) Settings.Aimbot_Enabled = v end
+--- MISC TAB ---
+Tabs.Misc:AddParagraph({
+    Title = "⚠️ ATTENTION ⚠️",
+    Content = "This script is new and universal so dont use it in games with good anticheat!\n\nDeveloper: THHE Owner"
 })
 
-CombatTab:CreateSlider({
-    Name = "Hitbox Expander",
-    Range = {2, 30},
-    Increment = 1,
-    CurrentValue = 2,
-    Callback = function(v) Settings.HitboxSize = v end
+--- AIMBOT TAB ---
+Tabs.Aimbot:AddToggle("AimToggle", {Title = "Aimbot Enabled", Default = false}):OnChanged(function(v) Options.Aimbot = v end)
+Tabs.Aimbot:AddToggle("ShowFOV", {Title = "Show Aimbot FOV", Default = true}):OnChanged(function(v) Options.ShowAimFOV = v end)
+Tabs.Aimbot:AddSlider("FOVSize", {Title = "FOV Size", Default = 120, Min = 10, Max = 800, Rounding = 0}):OnChanged(function(v) Options.AimFOV = v end)
+Tabs.Aimbot:AddSlider("Hitbox", {Title = "Hitbox Expander", Default = 2, Min = 2, Max = 40, Rounding = 0}):OnChanged(function(v) Options.HitboxExpander = v end)
+
+--- TELEPORTS TAB ---
+local PlayerDropdown = Tabs.Teleports:AddDropdown("SelectPlayer", {
+    Title = "Select Player",
+    Values = {},
+    Default = nil,
+    Callback = function(v) Options.SelectedPlayer = v end
 })
 
-CombatTab:CreateSlider({
-    Name = "FOV Radius",
-    Range = {50, 800},
-    Increment = 10,
-    CurrentValue = 120,
-    Callback = function(v) Settings.Aimbot_FOV = v end
-})
-
---- VISUALS ---
-VisTab:CreateToggle({
-    Name = "Box ESP",
-    CurrentValue = false,
-    Callback = function(v) Settings.ESP_Box = v end
-})
-
-VisTab:CreateColorPicker({
-    Name = "ESP Color",
-    Color = Settings.ESP_Color,
-    Callback = function(v) Settings.ESP_Color = v end
-})
-
---- MOVEMENT & NOCLIP ---
-CharTab:CreateToggle({
-    Name = "No-Clip (Walk through Walls)",
-    CurrentValue = false,
-    Callback = function(v) Settings.Noclip = v end
-})
-
-CharTab:CreateToggle({
-    Name = "Fly (Mobile Buttons / Space-Shift)",
-    CurrentValue = false,
-    Callback = function(v) Settings.Fly_Enabled = v end
-})
-
-CharTab:CreateSlider({
-    Name = "Fly Speed",
-    Range = {10, 500},
-    Increment = 10,
-    CurrentValue = 60,
-    Callback = function(v) Settings.Fly_Speed = v end
-})
-
-CharTab:CreateSlider({
-    Name = "Walkspeed",
-    Range = {16, 250},
-    Increment = 1,
-    CurrentValue = 16,
-    Callback = function(v) if lplr.Character then lplr.Character.Humanoid.WalkSpeed = v end end
-})
-
-CharTab:CreateSlider({
-    Name = "JumpHeight",
-    Range = {50, 400},
-    Increment = 5,
-    CurrentValue = 50,
-    Callback = function(v) 
-        if lplr.Character then 
-            lplr.Character.Humanoid.UseJumpPower = false
-            lplr.Character.Humanoid.JumpHeight = v 
-        end 
-    end
-})
-
--- LOGIC SYSTEMS
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1
-FOVCircle.NumSides = 100
-FOVCircle.Filled = false
-
-local function GetClosest()
-    local target, dist = nil, Settings.Aimbot_FOV
-    for _, p in pairs(game.Players:GetPlayers()) do
-        if p ~= lplr and p.Character and p.Character:FindFirstChild("Head") then
-            local pos, vis = camera:WorldToViewportPoint(p.Character.Head.Position)
-            if vis then
-                local m = (Vector2.new(pos.X, pos.Y) - UIS:GetMouseLocation()).Magnitude
-                if m < dist then target = p; dist = m end
-            end
+Tabs.Teleports:AddButton({
+    Title = "Refresh & Teleport",
+    Callback = function()
+        local newList = {}
+        for _, p in pairs(Players:GetPlayers()) do if p ~= lplr then table.insert(newList, p.Name) end end
+        PlayerDropdown:SetValues(newList)
+        if Options.SelectedPlayer then
+            local target = Players:FindFirstChild(Options.SelectedPlayer)
+            if target and target.Character then lplr.Character:MoveTo(target.Character.HumanoidRootPart.Position) end
         end
     end
-    return target
+})
+
+--- MOVEMENT TAB ---
+Tabs.Movement:AddSlider("Speed", {Title = "WalkSpeed", Default = 16, Min = 16, Max = 300, Rounding = 0}):OnChanged(function(v) 
+    Options.WalkSpeed = v
+    if lplr.Character then lplr.Character.Humanoid.WalkSpeed = v end 
+end)
+
+Tabs.Movement:AddSlider("JumpP", {Title = "JumpPower", Default = 50, Min = 50, Max = 500, Rounding = 0}):OnChanged(function(v) 
+    Options.JumpPower = v
+    if lplr.Character then lplr.Character.Humanoid.UseJumpPower = true; lplr.Character.Humanoid.JumpPower = v end 
+end)
+
+Tabs.Movement:AddToggle("FlyT", {Title = "Elite Fly", Default = false}):OnChanged(function(v) Options.Fly = v end)
+Tabs.Movement:AddToggle("NocT", {Title = "No-Clip", Default = false}):OnChanged(function(v) Options.Noclip = v end)
+
+--- VISUALS TAB (NEU AUFGEBAUT) ---
+Tabs.Visuals:AddToggle("BoxT", {Title = "Box ESP", Default = false}):OnChanged(function(v) Options.BoxESP = v end)
+Tabs.Visuals:AddToggle("NameT", {Title = "Nametags", Default = false}):OnChanged(function(v) Options.Names = v end)
+Tabs.Visuals:AddToggle("ChamT", {Title = "Chams ", Default = false}):OnChanged(function(v) Options.Chams = v end)
+Tabs.Visuals:AddColorpicker("ESPCol", {Title = "ESP Color", Default = Color3.fromRGB(255, 255, 255)}):OnChanged(function(v) Options.ESPColor = v end)
+
+-- DRAWING ENGINE FOR BOX & NAMES
+local ESP_Objects = {}
+
+local function CreateESP(p)
+    local objects = {
+        Box = Drawing.new("Square"),
+        Name = Drawing.new("Text"),
+        Highlight = Instance.new("Highlight")
+    }
+    
+    objects.Box.Visible = false
+    objects.Box.Thickness = 1
+    objects.Box.Filled = false
+    
+    objects.Name.Visible = false
+    objects.Name.Size = 14
+    objects.Name.Center = true
+    objects.Name.Outline = true
+    
+    objects.Highlight.Enabled = false
+    
+    ESP_Objects[p] = objects
 end
 
--- RENDER LOOP (Noclip, Fly, Hitbox, Aimbot)
-local PlayerDrawings = {}
-
-RunService.RenderStepped:Connect(function()
-    FOVCircle.Visible = Settings.Aimbot_Enabled
-    FOVCircle.Radius = Settings.Aimbot_FOV
-    FOVCircle.Position = UIS:GetMouseLocation()
-    FOVCircle.Color = Settings.ESP_Color
-
-    -- 1. Fly Logic
-    if Settings.Fly_Enabled and lplr.Character and lplr.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = lplr.Character.HumanoidRootPart
-        local hum = lplr.Character.Humanoid
-        local vertical = 0
-        if UIS:IsKeyDown(Enum.KeyCode.Space) or Settings.FlyUp then vertical = Settings.Fly_Speed end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) or Settings.FlyDown then vertical = -Settings.Fly_Speed end
-        hrp.Velocity = (hum.MoveDirection * Settings.Fly_Speed) + Vector3.new(0, vertical + 1, 0)
-    end
-
-    -- 2. Noclip (Loop durch alle Parts)
-    if Settings.Noclip and lplr.Character then
-        for _, part in pairs(lplr.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
+local function UpdateESP()
+    for p, obj in pairs(ESP_Objects) do
+        if p and p.Parent and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local char = p.Character
+            local hrp = char.HumanoidRootPart
+            local pos, onScreen = camera:WorldToViewportPoint(hrp.Position)
+            
+            -- Box & Name Logic
+            if onScreen and (Options.BoxESP or Options.Names) then
+                local sizeY = (camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3.5, 0)).Y - camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 4.5, 0)).Y)
+                local sizeX = sizeY / 1.5
+                
+                obj.Box.Visible = Options.BoxESP
+                obj.Box.Size = Vector2.new(sizeX, sizeY)
+                obj.Box.Position = Vector2.new(pos.X - sizeX / 2, pos.Y - sizeY / 2)
+                obj.Box.Color = Options.ESPColor
+                
+                obj.Name.Visible = Options.Names
+                obj.Name.Text = p.Name
+                obj.Name.Position = Vector2.new(pos.X, pos.Y - sizeY / 2 - 15)
+                obj.Name.Color = Options.ESPColor
+            else
+                obj.Box.Visible = false
+                obj.Name.Visible = false
+            end
+            
+            -- Chams Logic
+            if Options.Chams then
+                obj.Highlight.Parent = char
+                obj.Highlight.Enabled = true
+                obj.Highlight.FillColor = Options.ESPColor
+                obj.Highlight.OutlineColor = Color3.new(0,0,0)
+            else
+                obj.Highlight.Enabled = false
+            end
+        else
+            obj.Box.Visible = false
+            obj.Name.Visible = false
+            obj.Highlight.Enabled = false
         end
     end
+end
 
-    -- 3. Players Loop (Hitbox & ESP)
-    for _, p in pairs(game.Players:GetPlayers()) do
-        if p ~= lplr and p.Character then
-            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                -- Hitbox
-                hrp.Size = Vector3.new(Settings.HitboxSize, Settings.HitboxSize, Settings.HitboxSize)
-                hrp.Transparency = 0.8
-                
-                -- Box ESP
-                if not PlayerDrawings[p] then PlayerDrawings[p] = Drawing.new("Square") end
-                local box = PlayerDrawings[p]
-                local pos, vis = camera:WorldToViewportPoint(hrp.Position)
-                if vis and Settings.ESP_Box then
-                    local s = 2500 / pos.Z
-                    box.Visible = true
-                    box.Size = Vector2.new(s, s * 1.5)
-                    box.Position = Vector2.new(pos.X - s/2, pos.Y - (s*1.5)/2)
-                    box.Color = Settings.ESP_Color
-                else box.Visible = false end
+-- LOGIC CORE
+local AimFOV = Drawing.new("Circle")
+AimFOV.Thickness = 1
+AimFOV.Color = Color3.fromRGB(255, 255, 255)
+
+RunService.RenderStepped:Connect(function()
+    UpdateESP()
+    
+    AimFOV.Visible = Options.Aimbot and Options.ShowAimFOV
+    AimFOV.Radius = Options.AimFOV
+    AimFOV.Position = UIS:GetMouseLocation()
+
+    if lplr.Character then
+        if Options.Fly then
+            local v = 0
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then v = Options.FlySpeed end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then v = -Options.FlySpeed end
+            lplr.Character.HumanoidRootPart.Velocity = (lplr.Character.Humanoid.MoveDirection * Options.FlySpeed) + Vector3.new(0, v + 1, 0)
+        end
+        if Options.Noclip then
+            for _, p in pairs(lplr.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
+        end
+        
+        -- Hitbox
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= lplr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.Size = Vector3.new(Options.HitboxExpander, Options.HitboxExpander, Options.HitboxExpander)
             end
         end
     end
 
-    -- 4. Aimbot Execution
-    if Settings.Aimbot_Enabled and (UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) or Settings.Aimbot_MobileLock) then
-        local t = GetClosest()
-        if t then
-            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, t.Character.Head.Position), 0.15)
+    -- Aimbot Exec
+    if Options.Aimbot and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local target = nil
+        local dist = Options.AimFOV
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= lplr and p.Character and p.Character:FindFirstChild(Options.AimPart) then
+                local pos, vis = camera:WorldToViewportPoint(p.Character[Options.AimPart].Position)
+                if vis then
+                    local m = (Vector2.new(pos.X, pos.Y) - UIS:GetMouseLocation()).Magnitude
+                    if m < dist then target = p; dist = m end
+                end
+            end
+        end
+        if target then
+            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, target.Character[Options.AimPart].Position), 0.1)
         end
     end
 end)
 
--- ANTI-AFK (Fixed)
-lplr.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-end)
+-- INITIALIZE ESP FOR PLAYERS
+for _, p in pairs(Players:GetPlayers()) do if p ~= lplr then CreateESP(p) end end
+Players.PlayerAdded:Connect(CreateESP)
 
-Rayfield:Notify({Title = "Mobile v5.0 Loaded", Content = "No-Clip & Fly Master ready!", Duration = 4})
+Fluent:Notify({ Title = "THHE Hub", Content = "Universal Visuals & Combat Loaded.", Duration = 5 })
